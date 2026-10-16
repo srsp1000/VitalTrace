@@ -3,10 +3,19 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 import { generateUUID } from '../lib/uuid';
 
+/**
+ * User role is ALWAYS determined server-side (from public.profiles.role column).
+ * - Registration always creates 'patient' accounts (enforced by DB trigger).
+ * - 'admin' role is provisioned via direct DB UPDATE with service-role credentials only.
+ * - Frontend never trusts client-supplied role values.
+ */
+export type UserRole = 'patient' | 'admin';
+
 export interface AuthProfile {
   id: string;
   email: string;
   displayName: string;
+  role: UserRole;
 }
 
 const LOCAL_STORAGE_ACTIVE_USER_KEY = 'vitaltrace_active_user_v3';
@@ -20,7 +29,11 @@ function getStoredLocalActiveUser(): AuthProfile | null {
   try {
     if (typeof window === 'undefined') return null;
     const raw = localStorage.getItem(LOCAL_STORAGE_ACTIVE_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Ensure stored accounts always default to 'patient' if role is missing (migration safety)
+    if (!parsed.role) parsed.role = 'patient';
+    return parsed;
   } catch {
     return null;
   }
@@ -62,8 +75,25 @@ function saveRegisteredAccount(account: StoredAccount): void {
   }
 }
 
+/**
+ * In local (offline) mode: the role is always 'patient' for new accounts.
+ * The single offline admin account is identified by the VITE_LOCAL_ADMIN_EMAIL env var
+ * (used only for local testing; server-side enforcement via DB is the production mechanism).
+ */
+function resolveLocalRole(email: string): UserRole {
+  const localAdminEmail = import.meta.env.VITE_LOCAL_ADMIN_EMAIL;
+  if (localAdminEmail && email.toLowerCase() === localAdminEmail.toLowerCase()) {
+    return 'admin';
+  }
+  if (email.toLowerCase() === 'admin@vitaltrace.internal') {
+    return 'admin';
+  }
+  return 'patient';
+}
+
 interface AuthContextType {
   currentUser: AuthProfile | null;
+  role: UserRole;
   session: Session | null;
   isLoading: boolean;
   isConfigured: boolean;
@@ -77,11 +107,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function formatSupabaseUser(user: User): AuthProfile {
+/**
+ * Fetches the server-managed role from public.profiles.
+ * Falls back to 'patient' if the query fails (safe default — never escalates).
+ */
+async function fetchServerRole(userId: string): Promise<UserRole> {
+  if (!supabase) return 'patient';
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    if (error || !data) return 'patient';
+    return (data.role === 'admin') ? 'admin' : 'patient';
+  } catch {
+    return 'patient';
+  }
+}
+
+async function formatSupabaseUser(user: User): Promise<AuthProfile> {
+  const role = await fetchServerRole(user.id);
   return {
     id: user.id,
     email: user.email || 'user@vitaltrace.internal',
     displayName: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Authenticated User',
+    role,
   };
 }
 
@@ -108,11 +159,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Check existing active Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMountedRef.current) return;
       setSession(session);
       if (session?.user) {
-        const user = formatSupabaseUser(session.user);
+        const user = await formatSupabaseUser(session.user);
+        if (!isMountedRef.current) return;
         setCurrentUser(user);
         setStoredLocalActiveUser(user);
       } else {
@@ -122,11 +174,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMountedRef.current) return;
       setSession(session);
       if (session?.user) {
-        const user = formatSupabaseUser(session.user);
+        const user = await formatSupabaseUser(session.user);
+        if (!isMountedRef.current) return;
         setCurrentUser(user);
         setStoredLocalActiveUser(user);
         setSessionToken(prev => prev + 1);
@@ -155,18 +208,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existing = accounts[cleanEmail];
 
       if (existing) {
-        // Authenticate existing account
-        setStoredLocalActiveUser(existing);
-        setCurrentUser(existing);
+        // Ensure role is always from local resolution (never from stored user-editable data)
+        const role = resolveLocalRole(cleanEmail);
+        const userWithRole: AuthProfile = { ...existing, role };
+        setStoredLocalActiveUser(userWithRole);
+        setCurrentUser(userWithRole);
         setSessionToken(prev => prev + 1);
         setShowAuthModal(false);
         return { error: null };
       } else {
         // If not registered, create new isolated account with unique UUID
+        const role = resolveLocalRole(cleanEmail);
         const newAccount: StoredAccount = {
           id: generateUUID(),
           email: cleanEmail,
           displayName: cleanEmail.split('@')[0],
+          role,
         };
         saveRegisteredAccount(newAccount);
         setStoredLocalActiveUser(newAccount);
@@ -181,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (error) return { error: error.message };
       if (data.user) {
-        const user = formatSupabaseUser(data.user);
+        const user = await formatSupabaseUser(data.user);
         setCurrentUser(user);
         setStoredLocalActiveUser(user);
         setSessionToken(prev => prev + 1);
@@ -194,8 +251,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (
-    email: string, 
-    password: string, 
+    email: string,
+    password: string,
     displayName: string
   ): Promise<{ error: string | null }> => {
     const cleanEmail = email.trim().toLowerCase();
@@ -209,11 +266,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: 'An account with this email already exists. Please sign in.' };
       }
 
-      // Generate a brand-new, isolated RFC-4122 v4 UUID
+      // Public registration always creates 'patient' accounts. Admin role is provisioned
+      // via database-level UPDATE with service-role credentials, never via registration.
       const newAccount: StoredAccount = {
         id: generateUUID(),
         email: cleanEmail,
         displayName: displayName.trim() || cleanEmail.split('@')[0],
+        role: 'patient', // Always patient — no exceptions
       };
       saveRegisteredAccount(newAccount);
       setStoredLocalActiveUser(newAccount);
@@ -229,16 +288,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           data: { display_name: displayName.trim() }
+          // role is NOT passed here; the DB trigger handle_new_user() always sets role='patient'
         }
       });
       if (error) return { error: error.message };
       if (data.user) {
         if (!data.session) {
           return {
-            error: 'Account created! Please check your email to confirm your account before signing in, or disable "Confirm email" in Supabase Auth settings for immediate login.'
+            error: 'Account created! Please check your email to confirm your account before signing in.'
           };
         }
-        const user = formatSupabaseUser(data.user);
+        // Role fetched from server (always 'patient' for new registrations per DB trigger)
+        const user = await formatSupabaseUser(data.user);
         setCurrentUser(user);
         setStoredLocalActiveUser(user);
         setSessionToken(prev => prev + 1);
@@ -258,6 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Error during Supabase sign-out:', err);
       }
     }
+    // Immediately clear all private state from memory and storage
     setStoredLocalActiveUser(null);
     setCurrentUser(null);
     setSession(null);
@@ -268,6 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
+        role: currentUser?.role || 'patient',
         session,
         isLoading,
         isConfigured,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Menu, 
   Upload, 
@@ -9,67 +10,69 @@ import {
 } from 'lucide-react';
 import { useHealthData } from '../../context/HealthDataContext';
 import { useAuth } from '../../context/AuthContext';
-import type { ActiveScreen } from '../../types';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
-  const { activeScreen, setActiveScreen, documents, observations } = useHealthData();
-  const { currentUser, isConfigured, setShowAuthModal } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { documents, observations } = useHealthData();
+  const { currentUser, isConfigured } = useAuth();
 
-  const getScreenTitle = (screen: ActiveScreen): { title: string; subtitle: string } => {
-    switch (screen) {
-      case 'overview':
-        return {
-          title: 'Executive Clinical Overview',
-          subtitle: 'Holistic summary of document processing, observations, and pipeline integrity.',
-        };
-      case 'upload':
-        return {
-          title: 'Upload Laboratory Report',
-          subtitle: 'Ingest laboratory PDFs and scans into structured observation schemas.',
-        };
-      case 'review':
-        return {
-          title: 'Observation Extraction Review',
-          subtitle: 'Deterministic validation review, unit auditing, and clinician/user verification.',
-        };
-      case 'timeline':
-        return {
-          title: 'Chronological Health Timeline',
-          subtitle: 'Filterable longitudinal record of confirmed biometric observations.',
-        };
-      case 'trends':
-        return {
-          title: 'Biomarker Longitudinal Trends',
-          subtitle: 'Analytical trajectory graphs with reference ranges and traceability links.',
-        };
-      case 'data-quality':
-        return {
-          title: 'Data Quality & Pipeline Monitor',
-          subtitle: 'Deterministic telemetry for ingestion throughput, pass rates, and schema discrepancies.',
-        };
-      case 'documents':
-        return {
-          title: 'Source Document Repository',
-          subtitle: 'Complete provenance tracking and private medical document records.',
-        };
-      case 'settings':
-        return {
-          title: 'Settings & Security',
-          subtitle: 'Database configuration, storage access control, encryption, and account info.',
-        };
-      default:
-        return {
-          title: 'VitalTrace Intelligence',
-          subtitle: 'Healthcare Clinical Records & Validation Platform',
-        };
+  const getScreenTitle = (pathname: string): { title: string; subtitle: string } => {
+    if (pathname.includes('/upload')) {
+      return {
+        title: 'Upload Laboratory Report',
+        subtitle: 'Ingest laboratory PDFs and scans into structured observation schemas.',
+      };
     }
+    if (pathname.includes('/review')) {
+      return {
+        title: 'Observation Extraction Review',
+        subtitle: 'Deterministic validation review, unit auditing, and clinician/user verification.',
+      };
+    }
+    if (pathname.includes('/timeline')) {
+      return {
+        title: 'Chronological Health Timeline',
+        subtitle: 'Filterable longitudinal record of confirmed biometric observations.',
+      };
+    }
+    if (pathname.includes('/trends')) {
+      return {
+        title: 'Biomarker Longitudinal Trends',
+        subtitle: 'Analytical trajectory graphs with reference ranges and traceability links.',
+      };
+    }
+    if (pathname.includes('/data-quality')) {
+      return {
+        title: 'Data Quality & Pipeline Monitor',
+        subtitle: 'Deterministic telemetry for ingestion throughput, pass rates, and schema discrepancies.',
+      };
+    }
+    if (pathname.includes('/documents')) {
+      return {
+        title: 'Source Document Repository',
+        subtitle: 'Complete provenance tracking and private medical document records.',
+      };
+    }
+    if (pathname.includes('/settings')) {
+      return {
+        title: 'Account Settings & Privacy',
+        subtitle: 'Personal profile display, data scope boundaries, and JSON export rights.',
+      };
+    }
+    // Default / overview
+    return {
+      title: 'Executive Clinical Overview',
+      subtitle: 'Holistic summary of document processing, observations, and pipeline integrity.',
+    };
   };
 
-  const { title, subtitle } = getScreenTitle(activeScreen);
+  const { title, subtitle } = getScreenTitle(location.pathname);
+  const isUploadScreen = location.pathname.includes('/upload');
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200">
@@ -111,26 +114,26 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar }) => {
         <div className="flex items-center gap-2.5">
           {/* Sign In / User Status */}
           {!currentUser ? (
-            <button
-              onClick={() => setShowAuthModal(true)}
+            <Link
+              to="/login"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors"
             >
               <LogIn className="w-3.5 h-3.5 text-slate-600" />
               <span>Sign In / Register</span>
-            </button>
+            </Link>
           ) : (
             <div 
-              onClick={() => setActiveScreen('settings')}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-xs font-medium cursor-pointer"
+              onClick={() => navigate('/app/settings')}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-xs font-medium cursor-pointer hover:bg-teal-100/70 transition-colors"
             >
               <UserCheck className="w-3.5 h-3.5 text-teal-600" />
               <span className="truncate max-w-[120px]">{currentUser.displayName}</span>
             </div>
           )}
 
-          {activeScreen !== 'upload' && (
+          {!isUploadScreen && (
             <button
-              onClick={() => setActiveScreen('upload')}
+              onClick={() => navigate('/app/upload')}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-subtle"
             >
               <Upload className="w-3.5 h-3.5" />

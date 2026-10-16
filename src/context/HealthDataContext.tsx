@@ -57,6 +57,38 @@ function saveStoredUserState(userId: string, state: StoredUserState) {
   }
 }
 
+function loadAllAccountsUserState(): StoredUserState {
+  try {
+    if (typeof window === 'undefined') return { documents: [], runs: [], observations: [], validationIssues: [] };
+    const raw = localStorage.getItem('vitaltrace_registered_accounts_v3');
+    const accounts = raw ? JSON.parse(raw) : {};
+    const allDocs: LabDocument[] = [];
+    const allRuns: ExtractionRun[] = [];
+    const allObs: Observation[] = [];
+    const allIssues: ValidationIssue[] = [];
+    Object.values(accounts).forEach((acc: unknown) => {
+      const a = acc as { id?: string };
+      if (a?.id) {
+        const state = loadStoredUserState(a.id);
+        if (state) {
+          allDocs.push(...(state.documents || []));
+          allRuns.push(...(state.runs || []));
+          allObs.push(...(state.observations || []));
+          allIssues.push(...(state.validationIssues || []));
+        }
+      }
+    });
+    return {
+      documents: allDocs,
+      runs: allRuns,
+      observations: allObs,
+      validationIssues: allIssues,
+    };
+  } catch {
+    return { documents: [], runs: [], observations: [], validationIssues: [] };
+  }
+}
+
 interface HealthDataContextType {
   profile: UserProfile | null;
   activeScreen: ActiveScreen;
@@ -128,12 +160,15 @@ export const HealthDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsRefreshing(true);
 
     try {
-      // 1. Documents
-      const { data: dbDocs, error: docError } = await supabase
+      // 1. Documents (Admins see cross-user documents via RLS)
+      let docQuery = supabase
         .from('documents')
         .select('*')
-        .eq('profile_id', userId)
         .order('created_at', { ascending: false });
+      if (currentUser?.role !== 'admin') {
+        docQuery = docQuery.eq('profile_id', userId);
+      }
+      const { data: dbDocs, error: docError } = await docQuery;
 
       if (docError) {
         console.error('Failed to fetch live documents:', docError.message);
@@ -149,12 +184,15 @@ export const HealthDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Failed to fetch live extraction runs:', runError.message);
       }
 
-      // 3. Observations
-      const { data: dbObs, error: obsError } = await supabase
+      // 3. Observations (Admins see cross-user observations via RLS)
+      let obsQuery = supabase
         .from('observations')
         .select('*')
-        .eq('profile_id', userId)
         .order('observation_date', { ascending: false });
+      if (currentUser?.role !== 'admin') {
+        obsQuery = obsQuery.eq('profile_id', userId);
+      }
+      const { data: dbObs, error: obsError } = await obsQuery;
 
       if (obsError) {
         console.error('Failed to fetch live observations:', obsError.message);
@@ -279,7 +317,7 @@ export const HealthDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setIsRefreshing(false);
       }
     }
-  }, []);
+  }, [currentUser?.role]);
 
   // Centralized session transition lifecycle:
   // On logout or account switching: immediately purge all in-memory private account data
@@ -314,9 +352,11 @@ export const HealthDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (isSupabaseConfigured() && supabase) {
       loadLiveUserData(userId, currentToken);
     } else {
-      // Local mode: Load only this specific user's isolated local records
+      // Local mode: If admin, load aggregated cross-user telemetry; otherwise load user's isolated records
       setIsRefreshing(true);
-      const saved = loadStoredUserState(userId);
+      const saved = currentUser.role === 'admin' 
+        ? loadAllAccountsUserState() 
+        : loadStoredUserState(userId);
       setDocuments(saved?.documents || []);
       setRuns(saved?.runs || []);
       setObservations(saved?.observations || []);
@@ -333,7 +373,9 @@ export const HealthDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await loadLiveUserData(currentUser.id, activeSessionTokenRef.current);
     } else {
       setIsRefreshing(true);
-      const saved = loadStoredUserState(currentUser.id);
+      const saved = currentUser.role === 'admin' 
+        ? loadAllAccountsUserState() 
+        : loadStoredUserState(currentUser.id);
       setDocuments(saved?.documents || []);
       setRuns(saved?.runs || []);
       setObservations(saved?.observations || []);

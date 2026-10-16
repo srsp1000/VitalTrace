@@ -1,0 +1,41 @@
+id,profile_id,document_id,extraction_run_id,canonical_test_name,loinc_code,value_numeric,original_unit,observation_date,validation_status,verified_by_user
+OBS-001,PAT-A001,DOC-001,RUN-001,Fasting Glucose,1558-6,94,mg/dL,2024-01-15,valid,confirmed
+OBS-002,PAT-A001,DOC-001,RUN-001,HbA1c,4548-4,5.5,%,2024-01-15,valid,confirmed
+OBS-003,PAT-A001,DOC-001,RUN-001,Creatinine,2160-0,0.92,mg/dL,2024-01-15,valid,confirmed
+OBS-004,PAT-A001,DOC-001,RUN-001,Blood Urea Nitrogen (BUN),3094-0,14,mg/dL,2024-01-15,valid,confirmed
+OBS-005,PAT-A001,DOC-001,RUN-001,eGFR,33914-3,98,mL/min/1.73m2,2024-01-15,valid,confirmed
+OBS-006,PAT-A001,DOC-002,RUN-002,Total Cholesterol,2093-3,185,mg/dL,2024-03-22,valid,confirmed
+OBS-007,PAT-A001,DOC-002,RUN-002,HDL Cholesterol,2085-9,54,mg/dL,2024-03-22,valid,confirmed
+OBS-008,PAT-A001,DOC-002,RUN-002,LDL Cholesterol,13457-7,110,,2024-03-22,warning,pending
+OBS-009,PAT-A001,DOC-002,RUN-002,Triglycerides,2571-8,135,mg/dL,2024-03-22,valid,confirmed
+OBS-010,PAT-B002,DOC-003,RUN-003,Hemoglobin,718-7,14.2,g/dL,2024-04-10,valid,confirmed
+OBS-011,PAT-B002,DOC-003,RUN-003,Platelet Count,777-3,230,10*3/uL,2024-04-10,valid,confirmed
+OBS-012,PAT-B002,DOC-003,RUN-003,White Blood Cell (WBC),6690-2,6.8,10*3/uL,2024-04-10,valid,confirmed
+OBS-013,PAT-B002,DOC-003,RUN-003,Fasting Glucose,1558-6,102,mg/dL,2024-04-10,valid,confirmed
+OBS-014,PAT-B002,DOC-003,RUN-003,HbA1c,4548-4,5.7,%,2024-04-10,valid,confirmed
+OBS-015,PAT-B002,DOC-004,RUN-004,TSH,3016-3,2.35,mIU/L,2024-05-18,valid,confirmed
+OBS-016,PAT-B002,DOC-004,RUN-004,TSH,3016-3,2.35,mIU/L,2024-05-18,warning,pending
+OBS-017,PAT-B002,DOC-004,RUN-004,Fasting Glucose,1558-6,495,mg/dL,2024-05-18,warning,pending
+OBS-018,PAT-C003,DOC-005,RUN-005,Creatinine,2160-0,1.15,mg/dL,2024-06-05,valid,confirmed
+OBS-019,PAT-C003,DOC-005,RUN-005,Blood Urea Nitrogen (BUN),3094-0,18,mg/dL,2024-06-05,valid,confirmed
+OBS-020,PAT-C003,DOC-005,RUN-005,eGFR,33914-3,84,mL/min/1.73m2,2024-06-05,valid,confirmed
+OBS-021,PAT-C003,DOC-005,RUN-005,Fasting Glucose,1558-6,88,mg/dL,2024-06-05,valid,confirmed
+OBS-022,PAT-C003,DOC-005,RUN-005,Total Cholesterol,2093-3,198,mg/dL,2024-06-05,valid,confirmed
+OBS-023,PAT-D004,DOC-007,RUN-008,ALT,1742-6,24,U/L,2024-08-20,valid,confirmed
+OBS-024,PAT-D004,DOC-007,RUN-008,AST,1920-8,22,U/L,2024-08-20,valid,confirmed
+OBS-025,PAT-D004,DOC-007,RUN-008,Total Cholesterol,2093-3,172,mg/dL,2024-08-20,valid,confirmed
+OBS-026,PAT-D004,DOC-007,RUN-008,HDL Cholesterol,2085-9,61,mg/dL,2024-08-20,valid,confirmed
+OBS-027,PAT-D004,DOC-007,RUN-008,LDL Cholesterol,13457-7,96,mg/dL,2024-08-20,valid,confirmed
+OBS-028,PAT-D004,DOC-007,RUN-008,Triglycerides,2571-8,115,mg/dL,2024-08-20,valid,confirmed
+OBS-029,PAT-D004,DOC-008,RUN-009,Fasting Glucose,1558-6,118,mg/dL,2024-09-12,valid,confirmed
+OBS-030,PAT-D004,DOC-008,RUN-009,HbA1c,4548-4,6.1,%,2024-09-12,valid,confirmed
+OBS-031,PAT-D004,DOC-008,RUN-009,Creatinine,2160-0,1.05,mg/dL,2024-09-12,valid,confirmed
+OBS-032,PAT-D004,DOC-008,RUN-009,Blood Urea Nitrogen (BUN),3094-0,16,,2024-09-12,warning,pending
+OBS-033,PAT-D004,DOC-008,RUN-009,ALT,1742-6,38,U/L,2024-09-12,valid,confirmed
+OBS-034,PAT-D004,DOC-008,RUN-009,AST,1920-8,,U/L,2024-09-12,error,rejected
+OBS-035,PAT-E005,DOC-009,RUN-011,Hemoglobin,718-7,13.9,g/dL,2024-10-08,valid,confirmed
+OBS-036,PAT-E005,DOC-009,RUN-011,Platelet Count,777-3,215,10*3/uL,2024-10-08,valid,confirmed
+OBS-037,PAT-E005,DOC-009,RUN-011,White Blood Cell (WBC),6690-2,7.4,10*3/uL,2024-10-08,warning,pending
+OBS-038,PAT-E005,DOC-010,RUN-012,TSH,3016-3,1.88,mIU/L,2024-11-15,valid,confirmed
+OBS-039,PAT-E005,DOC-010,RUN-012,Fasting Glucose,1558-6,91,mg/dL,2024-11-15,valid,confirmed
+OBS-040,PAT-E005,DOC-010,RUN-012,HbA1c,4548-4,5.2,%,2024-11-15,valid,confirmed

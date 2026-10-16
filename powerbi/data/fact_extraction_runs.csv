@@ -1,0 +1,13 @@
+id,document_id,model_name,status,started_at,completed_at,extracted_count,validation_issue_count,duration_ms,error_message
+RUN-001,DOC-001,gemini-1.5-flash,completed,2024-01-15T08:30:05Z,2024-01-15T08:30:07Z,5,0,2350,
+RUN-002,DOC-002,gemini-1.5-flash,completed,2024-03-22T09:15:06Z,2024-03-22T09:15:09Z,4,1,3120,
+RUN-003,DOC-003,gemini-1.5-flash,completed,2024-04-10T11:20:05Z,2024-04-10T11:20:07Z,5,0,1980,
+RUN-004,DOC-004,gemini-1.5-pro,completed,2024-05-18T14:05:08Z,2024-05-18T14:05:12Z,3,2,4200,
+RUN-005,DOC-005,gemini-1.5-flash,completed,2024-06-05T10:12:05Z,2024-06-05T10:12:08Z,5,0,2750,
+RUN-006,DOC-006,gemini-1.5-flash,failed,2024-07-14T16:45:05Z,2024-07-14T16:45:06Z,0,1,1150,"PDF stream syntax corrupted: unexpected EOF in raster xref table"
+RUN-007,DOC-006,gemini-1.5-pro,failed,2024-07-14T16:48:00Z,2024-07-14T16:48:02Z,0,1,1850,"Model fallback failed: low contrast and illegible font in document scan"
+RUN-008,DOC-007,gemini-1.5-flash,completed,2024-08-20T13:25:05Z,2024-08-20T13:25:08Z,6,0,2890,
+RUN-009,DOC-008,gemini-1.5-flash,completed,2024-09-12T15:50:06Z,2024-09-12T15:50:10Z,6,2,3950,
+RUN-010,DOC-009,gemini-1.5-flash,failed,2024-10-08T17:10:05Z,2024-10-08T17:10:07Z,0,1,1420,"OCR confidence threshold breached (<0.35) due to severe camera blur"
+RUN-011,DOC-009,gemini-1.5-pro,completed,2024-10-08T17:15:00Z,2024-10-08T17:15:06Z,3,1,5600,
+RUN-012,DOC-010,gemini-1.5-flash,completed,2024-11-15T09:40:05Z,2024-11-15T09:40:07Z,3,0,2100,

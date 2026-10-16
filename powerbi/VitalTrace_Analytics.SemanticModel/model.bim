@@ -1,0 +1,562 @@
+{
+  "name": "VitalTrace_Analytics",
+  "compatibilityLevel": 1550,
+  "model": {
+    "culture": "en-US",
+    "dataAccessOptions": {
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "sourceQueryCulture": "en-US",
+    "tables": [
+      {
+        "name": "dim_documents",
+        "columns": [
+          {
+            "name": "id",
+            "dataType": "string",
+            "isKey": true
+          },
+          {
+            "name": "profile_id",
+            "dataType": "string"
+          },
+          {
+            "name": "original_filename",
+            "dataType": "string"
+          },
+          {
+            "name": "document_type",
+            "dataType": "string"
+          },
+          {
+            "name": "document_date",
+            "dataType": "dateTime",
+            "formatString": "yyyy-MM-dd"
+          },
+          {
+            "name": "file_size_bytes",
+            "dataType": "int64"
+          },
+          {
+            "name": "file_size_kb",
+            "dataType": "double"
+          },
+          {
+            "name": "checksum",
+            "dataType": "string"
+          },
+          {
+            "name": "processing_status",
+            "dataType": "string"
+          },
+          {
+            "name": "created_at",
+            "dataType": "dateTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "dim_documents-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\dim_documents.csv\"),[Delimiter=\",\", Columns=10, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"id\", type text}, {\"profile_id\", type text}, {\"original_filename\", type text}, {\"document_type\", type text}, {\"document_date\", type date}, {\"file_size_bytes\", Int64.Type}, {\"file_size_kb\", type number}, {\"checksum\", type text}, {\"processing_status\", type text}, {\"created_at\", type datetime}})\nin\n    #\"Changed Type\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "fact_extraction_runs",
+        "columns": [
+          {
+            "name": "id",
+            "dataType": "string",
+            "isKey": true
+          },
+          {
+            "name": "document_id",
+            "dataType": "string"
+          },
+          {
+            "name": "model_name",
+            "dataType": "string"
+          },
+          {
+            "name": "status",
+            "dataType": "string"
+          },
+          {
+            "name": "started_at",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "completed_at",
+            "dataType": "dateTime"
+          },
+          {
+            "name": "extracted_count",
+            "dataType": "int64"
+          },
+          {
+            "name": "validation_issue_count",
+            "dataType": "int64"
+          },
+          {
+            "name": "duration_ms",
+            "dataType": "int64"
+          },
+          {
+            "name": "duration_seconds",
+            "dataType": "double"
+          },
+          {
+            "name": "error_message",
+            "dataType": "string"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "fact_extraction_runs-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\fact_extraction_runs.csv\"),[Delimiter=\",\", Columns=10, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"id\", type text}, {\"document_id\", type text}, {\"model_name\", type text}, {\"status\", type text}, {\"started_at\", type datetime}, {\"completed_at\", type datetime}, {\"extracted_count\", Int64.Type}, {\"validation_issue_count\", Int64.Type}, {\"duration_ms\", Int64.Type}, {\"error_message\", type text}}),\n    #\"Added Duration Seconds\" = Table.AddColumn(#\"Changed Type\", \"duration_seconds\", each [duration_ms] / 1000, type number)\nin\n    #\"Added Duration Seconds\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "fact_observations",
+        "columns": [
+          {
+            "name": "id",
+            "dataType": "string",
+            "isKey": true
+          },
+          {
+            "name": "profile_id",
+            "dataType": "string"
+          },
+          {
+            "name": "document_id",
+            "dataType": "string"
+          },
+          {
+            "name": "extraction_run_id",
+            "dataType": "string"
+          },
+          {
+            "name": "canonical_test_name",
+            "dataType": "string"
+          },
+          {
+            "name": "loinc_code",
+            "dataType": "string"
+          },
+          {
+            "name": "value_numeric",
+            "dataType": "double"
+          },
+          {
+            "name": "original_unit",
+            "dataType": "string"
+          },
+          {
+            "name": "observation_date",
+            "dataType": "dateTime",
+            "formatString": "yyyy-MM-dd"
+          },
+          {
+            "name": "validation_status",
+            "dataType": "string"
+          },
+          {
+            "name": "verified_by_user",
+            "dataType": "string"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "fact_observations-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\fact_observations.csv\"),[Delimiter=\",\", Columns=11, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"id\", type text}, {\"profile_id\", type text}, {\"document_id\", type text}, {\"extraction_run_id\", type text}, {\"canonical_test_name\", type text}, {\"loinc_code\", type text}, {\"value_numeric\", type number}, {\"original_unit\", type text}, {\"observation_date\", type date}, {\"validation_status\", type text}, {\"verified_by_user\", type text}})\nin\n    #\"Changed Type\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "fact_validation_issues",
+        "columns": [
+          {
+            "name": "id",
+            "dataType": "string",
+            "isKey": true
+          },
+          {
+            "name": "document_id",
+            "dataType": "string"
+          },
+          {
+            "name": "extraction_run_id",
+            "dataType": "string"
+          },
+          {
+            "name": "observation_id",
+            "dataType": "string"
+          },
+          {
+            "name": "issue_type",
+            "dataType": "string"
+          },
+          {
+            "name": "severity",
+            "dataType": "string"
+          },
+          {
+            "name": "resolved",
+            "dataType": "boolean"
+          },
+          {
+            "name": "created_at",
+            "dataType": "dateTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "fact_validation_issues-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\fact_validation_issues.csv\"),[Delimiter=\",\", Columns=8, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"id\", type text}, {\"document_id\", type text}, {\"extraction_run_id\", type text}, {\"observation_id\", type text}, {\"issue_type\", type text}, {\"severity\", type text}, {\"resolved\", type logical}, {\"created_at\", type datetime}})\nin\n    #\"Changed Type\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_analytes",
+        "columns": [
+          {
+            "name": "canonical_test_name",
+            "dataType": "string",
+            "isKey": true
+          },
+          {
+            "name": "loinc_code",
+            "dataType": "string"
+          },
+          {
+            "name": "standard_unit",
+            "dataType": "string"
+          },
+          {
+            "name": "category",
+            "dataType": "string"
+          },
+          {
+            "name": "normal_range_min",
+            "dataType": "double"
+          },
+          {
+            "name": "normal_range_max",
+            "dataType": "double"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "dim_analytes-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\dim_analytes.csv\"),[Delimiter=\",\", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"canonical_test_name\", type text}, {\"loinc_code\", type text}, {\"standard_unit\", type text}, {\"category\", type text}, {\"normal_range_min\", type number}, {\"normal_range_max\", type number}})\nin\n    #\"Changed Type\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "dim_calendar",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "date",
+            "dataType": "dateTime",
+            "isKey": true,
+            "formatString": "yyyy-MM-dd"
+          },
+          {
+            "name": "year",
+            "dataType": "int64"
+          },
+          {
+            "name": "quarter",
+            "dataType": "string"
+          },
+          {
+            "name": "month_number",
+            "dataType": "int64"
+          },
+          {
+            "name": "month_name",
+            "dataType": "string"
+          },
+          {
+            "name": "month_year",
+            "dataType": "string"
+          },
+          {
+            "name": "week_number",
+            "dataType": "int64"
+          },
+          {
+            "name": "day_of_week",
+            "dataType": "int64"
+          },
+          {
+            "name": "day_name",
+            "dataType": "string"
+          },
+          {
+            "name": "is_weekend",
+            "dataType": "boolean"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "dim_calendar-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = Csv.Document(File.Contents(\"c:\\Users\\srsp1\\OneDrive\\Documents\\VitalTrace\\powerbi\\data\\dim_calendar.csv\"),[Delimiter=\",\", Columns=10, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),\n    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\",{{\"date\", type date}, {\"year\", Int64.Type}, {\"quarter\", type text}, {\"month_number\", Int64.Type}, {\"month_name\", type text}, {\"month_year\", type text}, {\"week_number\", Int64.Type}, {\"day_of_week\", Int64.Type}, {\"day_name\", type text}, {\"is_weekend\", type logical}})\nin\n    #\"Changed Type\""
+            }
+          }
+        ]
+      },
+      {
+        "name": "_Measures",
+        "columns": [
+          {
+            "name": "MeasurePlaceholder",
+            "dataType": "string",
+            "isHidden": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "_Measures-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let Source = #table(type table [MeasurePlaceholder = text], {{\"Placeholder\"}}) in Source"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Total Documents",
+            "expression": "DISTINCTCOUNT(dim_documents[id])",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Total Extraction Runs",
+            "expression": "DISTINCTCOUNT(fact_extraction_runs[id])",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Unique Documents Processed",
+            "expression": "DISTINCTCOUNT(fact_extraction_runs[document_id])",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Retry Rate %",
+            "expression": "DIVIDE([Total Extraction Runs] - [Unique Documents Processed], [Unique Documents Processed], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Successful Runs",
+            "expression": "CALCULATE([Total Extraction Runs], fact_extraction_runs[status] = \"completed\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Failed Runs",
+            "expression": "CALCULATE([Total Extraction Runs], fact_extraction_runs[status] = \"failed\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Run Success Rate %",
+            "expression": "DIVIDE([Successful Runs], [Successful Runs] + [Failed Runs], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Total Observations",
+            "expression": "COUNTROWS(fact_observations)",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Confirmed Observations",
+            "expression": "CALCULATE([Total Observations], fact_observations[verified_by_user] = \"confirmed\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Pending Review",
+            "expression": "CALCULATE([Total Observations], fact_observations[verified_by_user] = \"pending\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Confirmation Rate %",
+            "expression": "DIVIDE([Confirmed Observations], [Total Observations], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Review Backlog Priority Flag",
+            "expression": "SWITCH(TRUE(), [Pending Review] > 5, \"High Backlog\", [Pending Review] > 0, \"Normal Backlog\", \"Clear\")"
+          },
+          {
+            "name": "Observations Missing Unit",
+            "expression": "CALCULATE([Total Observations], fact_observations[original_unit] = \"\" || ISBLANK(fact_observations[original_unit]))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Observations Missing Value",
+            "expression": "CALCULATE([Total Observations], ISBLANK(fact_observations[value_numeric]))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Duplicate Observations",
+            "expression": "CALCULATE(COUNTROWS(fact_validation_issues), fact_validation_issues[issue_type] = \"duplicate_observation\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Unmapped Analytes",
+            "expression": "CALCULATE(COUNTROWS(fact_validation_issues), fact_validation_issues[issue_type] = \"unmapped_test\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Open Issues",
+            "expression": "CALCULATE(COUNTROWS(fact_validation_issues), fact_validation_issues[resolved] = FALSE())",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Resolved Issues",
+            "expression": "CALCULATE(COUNTROWS(fact_validation_issues), fact_validation_issues[resolved] = TRUE())",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Issue Resolution Rate %",
+            "expression": "DIVIDE([Resolved Issues], COUNTROWS(fact_validation_issues), 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Validation Pass Rate %",
+            "expression": "DIVIDE(CALCULATE([Total Observations], fact_observations[validation_status] = \"valid\"), [Total Observations], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Avg Processing Duration (s)",
+            "expression": "AVERAGE(fact_extraction_runs[duration_ms]) / 1000",
+            "formatString": "0.00"
+          },
+          {
+            "name": "Max Duration (s)",
+            "expression": "MAX(fact_extraction_runs[duration_ms]) / 1000",
+            "formatString": "0.00"
+          },
+          {
+            "name": "Min Duration (s)",
+            "expression": "MIN(fact_extraction_runs[duration_ms]) / 1000",
+            "formatString": "0.00"
+          },
+          {
+            "name": "P50 Latency (s)",
+            "expression": "PERCENTILE.INC(fact_extraction_runs[duration_ms], 0.5) / 1000",
+            "formatString": "0.00"
+          },
+          {
+            "name": "P95 Latency (s)",
+            "expression": "PERCENTILE.INC(fact_extraction_runs[duration_ms], 0.95) / 1000",
+            "formatString": "0.00"
+          },
+          {
+            "name": "Documents with Failures",
+            "expression": "CALCULATE(DISTINCTCOUNT(fact_extraction_runs[document_id]), fact_extraction_runs[status] = \"failed\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Failure Rate %",
+            "expression": "DIVIDE([Failed Runs], [Total Extraction Runs], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "SLA Compliance %",
+            "expression": "DIVIDE(CALCULATE([Total Extraction Runs], fact_extraction_runs[duration_ms] <= 5000), [Total Extraction Runs], 0) * 100",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Selected Document Runs",
+            "expression": "CALCULATE([Total Extraction Runs], ALLSELECTED(dim_documents))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Selected Observations",
+            "expression": "CALCULATE([Total Observations], ALLSELECTED(dim_documents))",
+            "formatString": "#,0"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "rel_documents_runs",
+        "fromTable": "fact_extraction_runs",
+        "fromColumn": "document_id",
+        "toTable": "dim_documents",
+        "toColumn": "id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "rel_documents_observations",
+        "fromTable": "fact_observations",
+        "fromColumn": "document_id",
+        "toTable": "dim_documents",
+        "toColumn": "id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "rel_documents_issues",
+        "fromTable": "fact_validation_issues",
+        "fromColumn": "document_id",
+        "toTable": "dim_documents",
+        "toColumn": "id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "rel_analytes_observations",
+        "fromTable": "fact_observations",
+        "fromColumn": "canonical_test_name",
+        "toTable": "dim_analytes",
+        "toColumn": "canonical_test_name",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "rel_calendar_observations",
+        "fromTable": "fact_observations",
+        "fromColumn": "observation_date",
+        "toTable": "dim_calendar",
+        "toColumn": "date",
+        "crossFilteringBehavior": "oneDirection",
+        "isActive": true
+      },
+      {
+        "name": "rel_calendar_documents",
+        "fromTable": "dim_documents",
+        "fromColumn": "document_date",
+        "toTable": "dim_calendar",
+        "toColumn": "date",
+        "crossFilteringBehavior": "oneDirection",
+        "isActive": false
+      }
+    ]
+  }
+}

@@ -1,21 +1,21 @@
 import React from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   UploadCloud, 
   CheckSquare, 
   Clock, 
   TrendingUp, 
-  ShieldAlert, 
   Files, 
   Settings,
   Activity,
   LogOut,
   ChevronRight,
-  Database
+  Database,
+  Shield
 } from 'lucide-react';
 import { useHealthData } from '../../context/HealthDataContext';
 import { useAuth } from '../../context/AuthContext';
-import type { ActiveScreen } from '../../types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,71 +23,60 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { 
-    activeScreen, 
-    setActiveScreen, 
-    observations, 
-    validationIssues 
-  } = useHealthData();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { observations } = useHealthData();
+  const { currentUser, role, isConfigured, signOut } = useAuth();
 
   // Compute pending review counts
   const pendingReviewCount = observations.filter(o => o.verifiedByUser === 'pending').length;
-  const unresolvedIssuesCount = validationIssues.filter(i => !i.resolved).length;
 
   const navItems: {
-    id: ActiveScreen;
+    path: string;
     label: string;
     icon: React.ElementType;
     badge?: number | string;
     badgeColor?: string;
   }[] = [
     {
-      id: 'overview',
+      path: '/app/overview',
       label: 'Overview',
       icon: LayoutDashboard,
     },
     {
-      id: 'upload',
+      path: '/app/upload',
       label: 'Upload Reports',
       icon: UploadCloud,
     },
     {
-      id: 'review',
+      path: '/app/review',
       label: 'Review Extraction',
       icon: CheckSquare,
       badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
     },
     {
-      id: 'timeline',
+      path: '/app/timeline',
       label: 'Health Timeline',
       icon: Clock,
     },
     {
-      id: 'trends',
+      path: '/app/trends',
       label: 'Trends',
       icon: TrendingUp,
     },
     {
-      id: 'data-quality',
-      label: 'Data Quality',
-      icon: ShieldAlert,
-      badge: unresolvedIssuesCount > 0 ? `${unresolvedIssuesCount} issues` : undefined,
-      badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
-    },
-    {
-      id: 'documents',
+      path: '/app/documents',
       label: 'Documents',
       icon: Files,
     },
     {
-      id: 'settings',
+      path: '/app/settings',
       label: 'Settings',
       icon: Settings,
     },
   ];
 
-  const { currentUser, isConfigured, signOut, setShowAuthModal } = useAuth();
   const displayName = currentUser?.displayName || 'Signed Out';
   const email = currentUser?.email || 'No active session';
   const initials = currentUser
@@ -117,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         {/* Brand Header */}
         <div className="h-16 px-5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/60">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white shadow-sm shadow-teal-500/20">
               <Activity className="w-5 h-5 text-teal-50" />
             </div>
@@ -132,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 Clinical Health Intelligence
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Storage Mode Status */}
@@ -151,13 +140,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeScreen === item.id;
+            const isActive = location.pathname === item.path || (item.path === '/app/overview' && location.pathname === '/app');
 
             return (
               <button
-                key={item.id}
+                key={item.path}
                 onClick={() => {
-                  setActiveScreen(item.id);
+                  navigate(item.path);
                   onClose();
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -190,6 +179,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </button>
             );
           })}
+
+          {/* Admin link for authorized administrators */}
+          {role === 'admin' && (
+            <div className="pt-3">
+              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-teal-400 font-mono">
+                Privileged Access
+              </div>
+              <button
+                onClick={() => {
+                  navigate('/admin');
+                  onClose();
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium bg-teal-950/40 border border-teal-800/60 text-teal-300 hover:bg-teal-900/40 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="w-4 h-4 text-teal-400" />
+                  <span>Admin Console</span>
+                </div>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-teal-900 text-teal-200 border border-teal-700">
+                  ADMIN
+                </span>
+              </button>
+            </div>
+          )}
         </nav>
 
         {/* Account and Sign-out Footer */}
@@ -197,7 +210,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {currentUser ? (
             <div className="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-between">
               <div 
-                onClick={() => setActiveScreen('settings')}
+                onClick={() => {
+                  navigate('/app/settings');
+                  onClose();
+                }}
                 className="min-w-0 flex items-center gap-2.5 cursor-pointer hover:opacity-90"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-200">
@@ -213,7 +229,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               <button
-                onClick={() => signOut()}
+                onClick={() => {
+                  signOut();
+                  navigate('/login');
+                }}
                 title="Sign Out"
                 className="p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
               >
@@ -221,13 +240,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
+            <Link
+              to="/login"
               className="w-full py-2.5 px-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-colors"
             >
               <Activity className="w-4 h-4" />
               <span>Sign In to VitalTrace</span>
-            </button>
+            </Link>
           )}
         </div>
       </aside>

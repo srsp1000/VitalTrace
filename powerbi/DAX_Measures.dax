@@ -1,0 +1,445 @@
+/* =========================================================================================
+   VitalTrace Power BI Semantic Model: DAX Measures Repository
+   Target Role: Innovaccer Data Analyst Intern
+   Platform: Power BI Desktop / Power BI Service (Import Mode Recommended)
+   Author: VitalTrace Data Platform Engineering Team
+   Schema Version: 4.0
+   
+   ARCHITECTURE & DIRECTQUERY NOTE:
+   - Measures utilizing statistical percentile ranking (e.g., PERCENTILE.INC for P50 and P95 latency)
+     require Power BI Import Mode (or Composite Model with imported telemetry).
+   - DirectQuery against PostgreSQL/ODBC does not natively support continuous percentile functions.
+   - For all production deployments, import mode refreshes are scheduled via Supabase read replica.
+========================================================================================= */
+
+// =========================================================================================
+// TABLE DECLARATION (Container Table: _Measures)
+// In Power BI Desktop, create a blank table named `_Measures` and assign these measures to it.
+// =========================================================================================
+
+/* -----------------------------------------------------------------------------------------
+   PAGE 1 — EXECUTIVE OVERVIEW
+   Purpose: High-level KPI scorecards, processing throughput, verification funnel, and volume trends.
+----------------------------------------------------------------------------------------- */
+
+/// <summary>
+/// Total count of unique documents ingested into the repository.
+/// Numerator: Distinct document IDs in dim_documents
+/// Denominator: N/A (Absolute volume count)
+/// Time Window: Filtered dynamically by dim_calendar[date] via document_date or created_at
+/// Exclusions: None
+/// </summary>
+Total Documents = 
+DISTINCTCOUNT(dim_documents[id])
+
+
+/// <summary>
+/// Total number of pipeline extraction executions attempted across all models.
+/// Numerator: Distinct run IDs in fact_extraction_runs
+/// Denominator: N/A (Absolute volume count)
+/// Time Window: Active report date slicer context
+/// Exclusions: None
+/// </summary>
+Total Extraction Runs = 
+DISTINCTCOUNT(fact_extraction_runs[id])
+
+
+/// <summary>
+/// Count of unique documents that underwent at least one extraction attempt.
+/// Numerator: Distinct document IDs present in fact_extraction_runs
+/// Denominator: N/A (Cardinality metric)
+/// Time Window: Active filter context
+/// Exclusions: Ingested documents that have not yet had an extraction job initiated
+/// </summary>
+Unique Documents Processed = 
+DISTINCTCOUNT(fact_extraction_runs[document_id])
+
+
+/// <summary>
+/// Ratio of retry extraction executions to unique documents processed.
+/// Numerator: Excess extraction executions beyond primary attempt ([Total Extraction Runs] - [Unique Documents Processed])
+/// Denominator: Total distinct documents attempted ([Unique Documents Processed])
+/// Time Window: Active filter context
+/// Exclusions: Unattempted documents. Returns 0% if no documents processed.
+/// </summary>
+Retry Rate % = 
+DIVIDE(
+    [Total Extraction Runs] - [Unique Documents Processed], 
+    [Unique Documents Processed], 
+    0
+) * 100
+
+
+/// <summary>
+/// Total extraction runs successfully finalized.
+/// Numerator: Extraction runs with status = 'completed'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Runs in 'failed' or 'running' status
+/// </summary>
+Successful Runs = 
+CALCULATE(
+    [Total Extraction Runs], 
+    fact_extraction_runs[status] = "completed"
+)
+
+
+/// <summary>
+/// Total extraction runs terminated abnormally with an error.
+/// Numerator: Extraction runs with status = 'failed'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Runs in 'completed' or 'running' status
+/// </summary>
+Failed Runs = 
+CALCULATE(
+    [Total Extraction Runs], 
+    fact_extraction_runs[status] = "failed"
+)
+
+
+/// <summary>
+/// Pipeline execution completion reliability percentage.
+/// Numerator: Successful completed runs ([Successful Runs])
+/// Denominator: Total finalized runs ([Successful Runs] + [Failed Runs])
+/// Time Window: Active filter context
+/// Exclusions: Actively executing ('running') jobs excluded to prevent downward skew on active batches
+/// </summary>
+Run Success Rate % = 
+DIVIDE(
+    [Successful Runs], 
+    [Successful Runs] + [Failed Runs], 
+    0
+) * 100
+
+
+/// <summary>
+/// Total individual clinical biomarker observations extracted from laboratory documents.
+/// Numerator: Count of rows in fact_observations
+/// Denominator: N/A
+/// Time Window: Active filter context (dim_calendar filtered on observation_date)
+/// Exclusions: None
+/// </summary>
+Total Observations = 
+COUNTROWS(fact_observations)
+
+
+/// <summary>
+/// Observations validated and confirmed by clinician or human auditor.
+/// Numerator: Total observations with verified_by_user = 'confirmed'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Observations in 'pending' or 'rejected' states
+/// </summary>
+Confirmed Observations = 
+CALCULATE(
+    [Total Observations], 
+    fact_observations[verified_by_user] = "confirmed"
+)
+
+
+/// <summary>
+/// Observations currently awaiting human auditor audit and verification.
+/// Numerator: Total observations with verified_by_user = 'pending'
+/// Denominator: N/A (Operational backlog count)
+/// Time Window: Active filter context
+/// Exclusions: Finalized reviews ('confirmed' or 'rejected')
+/// </summary>
+Pending Review = 
+CALCULATE(
+    [Total Observations], 
+    fact_observations[verified_by_user] = "pending"
+)
+
+
+/// <summary>
+/// Percentage of extracted observations approved through the verification workflow.
+/// Numerator: Confirmed observations ([Confirmed Observations])
+/// Denominator: Total extracted observations ([Total Observations])
+/// Time Window: Active filter context
+/// Exclusions: Returns 0% when no observations exist
+/// </summary>
+Confirmation Rate % = 
+DIVIDE(
+    [Confirmed Observations], 
+    [Total Observations], 
+    0
+) * 100
+
+
+/* -----------------------------------------------------------------------------------------
+   PAGE 2 — DATA QUALITY & CLINICAL GOVERNANCE
+   Purpose: Discrepancy analysis, missing values, duplicate detection, and rule resolution rates.
+----------------------------------------------------------------------------------------- */
+
+/// <summary>
+/// Count of clinical observations lacking unit of measure metadata.
+/// Numerator: Observations where original_unit is null, blank, or whitespace
+/// Denominator: N/A (Quality defect volume)
+/// Time Window: Active filter context
+/// Exclusions: Observations with standard or valid unit strings
+/// </summary>
+Observations Missing Unit = 
+CALCULATE(
+    [Total Observations], 
+    fact_observations[original_unit] = "" || ISBLANK(fact_observations[original_unit])
+)
+
+
+/// <summary>
+/// Count of clinical observations where quantitative numeric result could not be parsed.
+/// Numerator: Observations where value_numeric is NULL / BLANK
+/// Denominator: N/A (Quality defect volume)
+/// Time Window: Active filter context
+/// Exclusions: Successfully parsed numeric observations
+/// </summary>
+Observations Missing Value = 
+CALCULATE(
+    [Total Observations], 
+    ISBLANK(fact_observations[value_numeric])
+)
+
+
+/// <summary>
+/// Total deterministic validation issues flagged for duplicate observation entries on identical specimen dates.
+/// Numerator: Validation issue records with issue_type = 'duplicate_observation'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Non-duplicate validation issue records
+/// </summary>
+Duplicate Observations = 
+CALCULATE(
+    COUNTROWS(fact_validation_issues), 
+    fact_validation_issues[issue_type] = "duplicate_observation"
+)
+
+
+/// <summary>
+/// Count of validation issues flagged where extracted biomarker could not be mapped to standard LOINC dictionary.
+/// Numerator: Validation issues with issue_type = 'unmapped_test'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Mapped canonical laboratory tests
+/// </summary>
+Unmapped Analytes = 
+CALCULATE(
+    COUNTROWS(fact_validation_issues), 
+    fact_validation_issues[issue_type] = "unmapped_test"
+)
+
+
+/// <summary>
+/// Total unresolved data quality issues currently demanding engineering or clinical resolution.
+/// Numerator: Validation issue records where resolved = FALSE
+/// Denominator: N/A (Operational backlog)
+/// Time Window: Active filter context
+/// Exclusions: Resolved validation issues
+/// </summary>
+Open Issues = 
+CALCULATE(
+    COUNTROWS(fact_validation_issues), 
+    fact_validation_issues[resolved] = FALSE()
+)
+
+
+/// <summary>
+/// Total historical data quality issues successfully investigated and closed.
+/// Numerator: Validation issue records where resolved = TRUE
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Unresolved validation issues
+/// </summary>
+Resolved Issues = 
+CALCULATE(
+    COUNTROWS(fact_validation_issues), 
+    fact_validation_issues[resolved] = TRUE()
+)
+
+
+/// <summary>
+/// Percentage of raised validation issues that have reached verified resolution.
+/// Numerator: Resolved issues ([Resolved Issues])
+/// Denominator: Total issues raised (COUNTROWS(fact_validation_issues))
+/// Time Window: Active filter context
+/// Exclusions: Returns 0% if zero issues have been recorded
+/// </summary>
+Issue Resolution Rate % = 
+DIVIDE(
+    [Resolved Issues], 
+    COUNTROWS(fact_validation_issues), 
+    0
+) * 100
+
+
+/// <summary>
+/// Percentage of observations passing clinical syntax, bounds, and taxonomy checks without error/warning.
+/// Numerator: Observations with validation_status = 'valid'
+/// Denominator: Total extracted observations ([Total Observations])
+/// Time Window: Active filter context
+/// Exclusions: Observations with validation_status in ('warning', 'error')
+/// </summary>
+Validation Pass Rate % = 
+DIVIDE(
+    CALCULATE([Total Observations], fact_observations[validation_status] = "valid"), 
+    [Total Observations], 
+    0
+) * 100
+
+
+/* -----------------------------------------------------------------------------------------
+   PAGE 3 — PIPELINE PERFORMANCE & OCR LATENCY
+   Purpose: Ingestion runtime distribution, percentile SLAs, and infrastructure reliability.
+----------------------------------------------------------------------------------------- */
+
+/// <summary>
+/// Mean runtime across extraction execution cycles in seconds.
+/// Numerator: Sum of fact_extraction_runs[duration_ms] in milliseconds / 1000
+/// Denominator: Count of runs with populated duration
+/// Time Window: Active filter context
+/// Exclusions: Aborted or active runs where duration_ms IS BLANK
+/// </summary>
+Avg Processing Duration (s) = 
+AVERAGE(fact_extraction_runs[duration_ms]) / 1000
+
+
+/// <summary>
+/// Maximum observed single extraction cycle runtime in seconds.
+/// Numerator: Peak fact_extraction_runs[duration_ms] / 1000
+/// Denominator: N/A (Max aggregation)
+/// Time Window: Active filter context
+/// Exclusions: None
+/// </summary>
+Max Duration (s) = 
+MAX(fact_extraction_runs[duration_ms]) / 1000
+
+
+/// <summary>
+/// Minimum observed single extraction cycle runtime in seconds.
+/// Numerator: Fastest fact_extraction_runs[duration_ms] / 1000
+/// Denominator: N/A (Min aggregation)
+/// Time Window: Active filter context
+/// Exclusions: None
+/// </summary>
+Min Duration (s) = 
+MIN(fact_extraction_runs[duration_ms]) / 1000
+
+
+/// <summary>
+/// Median (50th percentile) latency of extraction runs in seconds.
+/// Calculation: PERCENTILE.INC on fact_extraction_runs[duration_ms] at k=0.5, converted to seconds.
+/// Time Window: Active filter context
+/// Exclusions: Null duration_ms records
+/// IMPORTANT ARCHITECTURAL REQUIREMENT:
+/// PERCENTILE.INC is unsupported in DirectQuery mode against PostgreSQL.
+/// This metric requires Power BI Import Mode.
+/// </summary>
+P50 Latency (s) = 
+PERCENTILE.INC(fact_extraction_runs[duration_ms], 0.5) / 1000
+
+
+/// <summary>
+/// 95th percentile (near tail) latency of extraction runs in seconds.
+/// Measures worst-case SLA experience across complex multi-page or degraded scan documents.
+/// Calculation: PERCENTILE.INC on fact_extraction_runs[duration_ms] at k=0.95, converted to seconds.
+/// Time Window: Active filter context
+/// Exclusions: Null duration_ms records
+/// IMPORTANT ARCHITECTURAL REQUIREMENT:
+/// PERCENTILE.INC is unsupported in DirectQuery mode against PostgreSQL.
+/// This metric requires Power BI Import Mode.
+/// </summary>
+P95 Latency (s) = 
+PERCENTILE.INC(fact_extraction_runs[duration_ms], 0.95) / 1000
+
+
+/// <summary>
+/// Distinct count of uploaded documents that suffered at least one pipeline extraction run failure.
+/// Numerator: Distinct document_ids in fact_extraction_runs where status = 'failed'
+/// Denominator: N/A
+/// Time Window: Active filter context
+/// Exclusions: Documents with zero failed attempts
+/// </summary>
+Documents with Failures = 
+CALCULATE(
+    DISTINCTCOUNT(fact_extraction_runs[document_id]), 
+    fact_extraction_runs[status] = "failed"
+)
+
+
+/// <summary>
+/// Percentage of pipeline execution attempts ending in failure.
+/// Numerator: Terminated failed extraction runs ([Failed Runs])
+/// Denominator: Total extraction runs attempted ([Total Extraction Runs])
+/// Time Window: Active filter context
+/// Exclusions: Returns 0% if no extraction runs exist
+/// </summary>
+Failure Rate % = 
+DIVIDE(
+    [Failed Runs], 
+    [Total Extraction Runs], 
+    0
+) * 100
+
+
+/* -----------------------------------------------------------------------------------------
+   PAGE 4 — ANALYTICAL EXPLORER & DRILL-THROUGH
+   Purpose: Interactive multi-dimensional breakdown across document types, models, and cohorts.
+----------------------------------------------------------------------------------------- */
+
+/// <summary>
+/// Extraction runs aggregated over the current user slicer selections, removing row-level table filters.
+/// Used in ratio analysis and drill-through visual summary matrices.
+/// Numerator: Total Extraction Runs under ALLSELECTED(dim_documents)
+/// Denominator: N/A
+/// Time Window: Respects external date and cohort slicers
+/// Exclusions: Ignores visual cross-filtering within the document explorer table
+/// </summary>
+Selected Document Runs = 
+CALCULATE(
+    [Total Extraction Runs], 
+    ALLSELECTED(dim_documents)
+)
+
+
+/// <summary>
+/// Total observations across active document filter context, ignoring intra-table row context.
+/// Enables calculating % of total observations per biomarker in matrix hierarchies.
+/// Numerator: Total Observations evaluated under ALLSELECTED(dim_documents)
+/// Denominator: N/A
+/// Time Window: Respects external date slicers
+/// Exclusions: Ignores visual-level row filtering on dim_documents
+/// </summary>
+Selected Observations = 
+CALCULATE(
+    [Total Observations], 
+    ALLSELECTED(dim_documents)
+)
+
+
+/* -----------------------------------------------------------------------------------------
+   SUPPORTING KPI BADGES & SLA HEALTH MEASURES
+   Purpose: Dynamic conditional formatting text, scorecard callouts, and threshold alerts.
+----------------------------------------------------------------------------------------- */
+
+/// <summary>
+/// Dynamic status badge for operational clinical audit backlog.
+/// </summary>
+Review Backlog Priority Flag = 
+SWITCH(
+    TRUE(),
+    [Pending Review] > 5, "High Backlog",
+    [Pending Review] > 0, "Normal Backlog",
+    "Clear"
+)
+
+
+/// <summary>
+/// Percentage of extraction runs completing within the 5.0 second production SLA target.
+/// Numerator: Extraction runs where duration_ms <= 5000
+/// Denominator: Total Extraction Runs
+/// </summary>
+SLA Compliance % = 
+DIVIDE(
+    CALCULATE([Total Extraction Runs], fact_extraction_runs[duration_ms] <= 5000),
+    [Total Extraction Runs],
+    0
+) * 100

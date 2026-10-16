@@ -1,0 +1,11 @@
+id,profile_id,original_filename,mime_type,file_size_bytes,document_date,processing_status,created_at
+DOC-001,PAT-A001,Quest_Metabolic_Panel_2024-01-15.pdf,application/pdf,245800,2024-01-15,completed,2024-01-15T08:30:00Z
+DOC-002,PAT-A001,LabCorp_Lipid_Panel_2024-03-22.pdf,application/pdf,312400,2024-03-22,completed,2024-03-22T09:15:00Z
+DOC-003,PAT-B002,Quest_CBC_Differential_2024-04-10.pdf,application/pdf,189200,2024-04-10,completed,2024-04-10T11:20:00Z
+DOC-004,PAT-B002,Endocrine_Specialists_TSH_2024-05-18.png,image/png,1048576,2024-05-18,review_required,2024-05-18T14:05:00Z
+DOC-005,PAT-C003,BioReference_Renal_Panel_2024-06-05.pdf,application/pdf,278100,2024-06-05,completed,2024-06-05T10:12:00Z
+DOC-006,PAT-C003,Fax_Scan_Corrupted_Electrolytes_2024-07-14.pdf,application/pdf,98120,2024-07-14,failed,2024-07-14T16:45:00Z
+DOC-007,PAT-D004,Mercy_Hospital_Hepatic_Panel_2024-08-20.pdf,application/pdf,345000,2024-08-20,completed,2024-08-20T13:25:00Z
+DOC-008,PAT-D004,LabCorp_Comprehensive_Panel_2024-09-12.pdf,application/pdf,412000,2024-09-12,review_required,2024-09-12T15:50:00Z
+DOC-009,PAT-E005,Mobile_Photo_Blurry_CBC_2024-10-08.jpg,image/jpeg,890400,2024-10-08,failed,2024-10-08T17:10:00Z
+DOC-010,PAT-E005,MayoClinic_Endocrine_Panel_2024-11-15.pdf,application/pdf,267300,2024-11-15,completed,2024-11-15T09:40:00Z

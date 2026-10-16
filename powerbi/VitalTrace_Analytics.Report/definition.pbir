@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "datasetReference": {
+    "byPath": {
+      "path": "../VitalTrace_Analytics.SemanticModel"
+    },
+    "byConnection": null
+  }
+}

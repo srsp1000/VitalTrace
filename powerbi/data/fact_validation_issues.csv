@@ -1,0 +1,9 @@
+id,document_id,extraction_run_id,observation_id,issue_type,severity,resolved,created_at
+ISSUE-001,DOC-002,RUN-002,OBS-008,missing_unit,warning,TRUE,2024-03-22T09:15:09Z
+ISSUE-002,DOC-004,RUN-004,OBS-016,duplicate_observation,warning,FALSE,2024-05-18T14:05:12Z
+ISSUE-003,DOC-004,RUN-004,OBS-017,implausible_bounds,warning,TRUE,2024-05-18T14:05:12Z
+ISSUE-004,DOC-006,RUN-006,,unmapped_test,error,FALSE,2024-07-14T16:45:06Z
+ISSUE-005,DOC-006,RUN-007,,unmapped_test,error,FALSE,2024-07-14T16:48:02Z
+ISSUE-006,DOC-008,RUN-009,OBS-032,missing_unit,warning,TRUE,2024-09-12T15:50:10Z
+ISSUE-007,DOC-008,RUN-009,OBS-034,missing_value,error,FALSE,2024-09-12T15:50:10Z
+ISSUE-008,DOC-009,RUN-010,,unmapped_test,error,TRUE,2024-10-08T17:10:07Z

@@ -224,7 +224,7 @@ describe('CRITICAL P0: Account Isolation, Session Lifecycle & Extraction Integri
 
       const directObsQuery = store.queryObservationsDirect(userBId, userADocs[0].id);
       expect(directObsQuery).toHaveLength(0);
-    });
+    }, 15000); // Extended timeout: test involves SHA-256 hashing + optional Supabase RLS calls
   });
 
   // ====================================================================
